@@ -346,10 +346,12 @@ def evaluate_model(args, count):
             # sample from replay buffer if possible
             if replay_buffer.nb_entries > args['batch_size']:
                 s_batch, a_batch, psi_batch, r_batch = replay_buffer.sample(args['batch_size'])
-                s_batch = torch.stack(s_batch)
-                a_batch = torch.stack(a_batch).float()
-                psi_batch = torch.stack(psi_batch)
-                targets = torch.stack(r_batch)
+                #s_batch = torch.stack(s_batch)
+                #a_batch = torch.stack(a_batch).float()
+                a_batch = a_batch.float()
+                #psi_batch = torch.stack(psi_batch)
+                #targets = torch.stack(r_batch)
+                targets = r_batch
                 if not args['replay_buffer_gpu'] and args['use_cuda']:                
                     s_batch.pin_memory()
                     psi_batch.pin_memory()

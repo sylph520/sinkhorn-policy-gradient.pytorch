@@ -178,7 +178,9 @@ def create_dataset(
         line = ''
         for j in range(data_len-1):
             line += '{} '.format(tensor[j])
-        line += str(tensor[-1]) + '\n'
+        #line += str(tensor[-1]) + '\n'
+        # ValueError: invalid literal for int() with base 10: 'tensor(19)'
+        line += '{}'.format(tensor[-1]) + '\n'
         return line
     
     print('Creating training data set for {}...'.format(train_task))

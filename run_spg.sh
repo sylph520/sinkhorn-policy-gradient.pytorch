@@ -1,7 +1,7 @@
 #!/bin/bash
 N_NODES=20
-N_FEATURES=2
-COP="tsp_$N_NODES"
+N_FEATURES=1
+COP="sort_0-19"
 ACTOR_WORKERS=4
 ARCH='sequential'
 RANDOM_SEED=$1
