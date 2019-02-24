@@ -137,7 +137,7 @@ class SPGMatchingActor(nn.Module):
             perms = torch.stack(perms).contiguous()
             perms.pin_memory()
             if self.use_cuda:
-                perms = perms.cuda(async=True)
+                perms = perms.cuda(non_blocking=True)
             #dist = torch.sum(torch.sum(psi * perms, dim=1), dim=1) / self.n_nodes
             return psi, perms
         else:

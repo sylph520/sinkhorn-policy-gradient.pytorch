@@ -1,0 +1,3 @@
+pathos==0.2.3
+tensorboard-logger==0.1.0
+tqdm==4.31.1

@@ -103,10 +103,10 @@ def evaluate_model(args, count):
         args['run_name'] = args['_id'][-6:] + '-' + args['run_name']
         configure(os.path.join(args['base_dir'], 'results', 'logs', args['task'], args['run_name']), flush_secs=2)
     
-    task = args['task'].split('_')
-    args['COP'] = task[0]  # the combinatorial optimization problem
+    task = args['task'].split('_') # e.g. "sort_0-19" to ["sort", "0-19"]
+    args['COP'] = task[0]  # cop = combinatorial optimization problem
     
-    # Load the model parameters from a saved state
+    # RL agent
     if args['actor_load_path'] != '' and args['critic_load_path'] != '':
         print('  [*] Loading models from {}'.format(args['critic_load_path']))
         actor = torch.load(
@@ -120,7 +120,6 @@ def evaluate_model(args, count):
             critic.cuda_after_load()
 
     else:
-        # initialize RL model
         if args['arch'] == 'fc':
             print("Architecture not supported")
             exit(1)
@@ -145,7 +144,8 @@ def evaluate_model(args, count):
     if args['use_cuda']:
         actor = actor.cuda()
         critic = critic.cuda()
-    #Optimizers
+
+    # Optimizers
     actor_optim = optim.Adam(actor.parameters(), lr=args['actor_lr'])
     critic_optim = optim.Adam(critic.parameters(), lr=args['critic_lr'])
     critic_loss = torch.nn.MSELoss()
@@ -155,7 +155,8 @@ def evaluate_model(args, count):
         critic_loss = critic_loss.cuda()
         critic_aux_loss = critic_aux_loss.cuda()
 
-    actor_scheduler = lr_scheduler.MultiStepLR(actor_optim,
+    # Schedulers
+    actor_scheduler = lr_scheduler.MultiStepLR(actor_optim, # lr as in learning rate
         range(args['actor_lr_decay_step'], args['actor_lr_decay_step'] * 1000,
             args['actor_lr_decay_step']), gamma=args['actor_lr_decay_rate'])
     critic_scheduler = lr_scheduler.MultiStepLR(critic_optim,
@@ -167,12 +168,15 @@ def evaluate_model(args, count):
     print("# of trainable actor parameters: {}".format(sum([np.prod(p.size()) for p in model_parameters])))
     model_parameters = filter(lambda p: p.requires_grad, critic.parameters())
     print("# of trainable critic parameters: {}".format(sum([np.prod(p.size()) for p in model_parameters])))
+   
     # Instantiate replay buffer
+    # TODO n_nodes? vs n_features?
     observation_shape = [args['n_nodes'], args['n_features']]
     if args['COP'] == 'mwm2D': 
         observation_shape[0] *= 2
     replay_buffer = ReplayBuffer(args['buffer_size'], action_shape=[args['n_nodes'], args['n_nodes']], 
             observation_shape=observation_shape, use_cuda=args['replay_buffer_gpu'])
+    
     # Get dataloaders for train and test datasets
     args, env, training_dataloader, test_dataloader = dataset.build(args, args['epoch_start'])
     if args['COP'] == 'mwm2D':
@@ -206,18 +210,22 @@ def evaluate_model(args, count):
     eval_means = []
     eval_stddevs = []
     
+    #
+    # helper function for eval on test during train
+    #
     def eval(eval_step, final=False):
-        # Eval 
+
         eval_R = []
         eval_birkhoff_dist = []
         ratios = []
-        actor.eval()
+        actor.eval() # testing rather than training, affects dropout, etc.
         critic.eval()
+        
         for obs in tqdm(test_dataloader, disable=args['disable_progress_bar']):            
-            obs = obs.pin_memory()
+            if args['use_cuda']: obs = obs.pin_memory()
             obs = Variable(obs, volatile=True)
             if args['use_cuda']:
-                obs = obs.cuda(async=True)
+                obs = obs.cuda(non_blocking=True)
             psi, action = actor(obs)
             action = Variable(action, volatile=True)
             dist = torch.sum(torch.sum(psi * action, dim=1), dim=1) / args['n_nodes']
@@ -260,21 +268,31 @@ def evaluate_model(args, count):
             log_value('Eval dist to nearest vertex of Birkhoff poly', mean_eval_birkhoff_dist, eval_step)
         return eval_step
 
+    #
+    # for each epoch
+    #
     i = 0
     for i in range(epoch, epoch + args['n_epochs']):
+        
         eval_step = eval(eval_step)
+
         if args['save_model']:
             print(' [*] saving actor and critic...')
             torch.save(actor, os.path.join(args['save_dir'], 'actor-epoch-{}.pt'.format(i+1)))
             torch.save(critic, os.path.join(args['save_dir'], 'critic-epoch-{}.pt'.format(i+1)))  
         actor.train()
         critic.train()
+
+        #
+        # for observation within epoch
+        #
         for obs in tqdm(training_dataloader, disable=args['disable_progress_bar']):
-            obs.pin_memory()
+            if args['use_cuda']: obs.pin_memory()
             obs = Variable(obs, requires_grad=False)
             if args['use_cuda']:
-                obs = obs.cuda(async=True)
-            psi, action = actor(obs)
+                obs = obs.cuda(non_blocking=True)
+
+            psi, action = actor(obs) # TODO whats happening here?
             action = Variable(action, requires_grad=False)
             dist = torch.sum(torch.sum(psi * action, dim=1), dim=1) / args['n_nodes']
             if action is None: # Nan'd out
@@ -357,10 +375,10 @@ def evaluate_model(args, count):
                     psi_batch.pin_memory()
                     a_batch.pin_memory()
                     targets.pin_memory()
-                    s_batch = Variable(s_batch.cuda(async=True))
-                    psi_batch = Variable(psi_batch.cuda(async=True))
-                    a_batch = Variable(a_batch.cuda(async=True))
-                    targets = Variable(targets.cuda(async=True))
+                    s_batch = Variable(s_batch.cuda(non_blocking=True))
+                    psi_batch = Variable(psi_batch.cuda(non_blocking=True))
+                    a_batch = Variable(a_batch.cuda(non_blocking=True))
+                    targets = Variable(targets.cuda(non_blocking=True))
                 else:
                     s_batch = Variable(s_batch)
                     psi_batch = Variable(psi_batch)
@@ -445,6 +463,8 @@ if __name__ == '__main__':
     #torch.cuda.manual_seed(args['random_seed'])
     np.random.seed(args['random_seed'])
     
-    with torch.cuda.device(args['cuda_device']):
+    if args['use_cuda']:
+        with torch.cuda.device(args['cuda_device']):
+            print("Score: {}".format(evaluate_model(args, 0)))
+    else:
         print("Score: {}".format(evaluate_model(args, 0)))
-    
