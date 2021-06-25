@@ -305,8 +305,12 @@ class TSPDataset(Dataset):
                         sample = torch.zeros(N, 2)
 
                     toks = next_line.split()
+                    # import pdb; pdb.set_trace()
                     for idx, tok in enumerate(toks):
-                        sample[idx, ctr] = float(tok)
+                        if '(' not in tok:
+                            sample[idx, ctr] = float(tok)
+                        else:
+                            sample[idx, ctr] = float(tok[7:-1])
 
         self.size = len(self.data_set)
 

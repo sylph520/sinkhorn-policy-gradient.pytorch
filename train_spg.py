@@ -42,7 +42,7 @@ parser.add_argument('--test_size', type=int, default=10000)
 # Model cfg options here
 parser.add_argument('--n_features', type=int, default=2)
 parser.add_argument('--n_nodes', type=int, default=10)
-parser.add_argument('--arch', type=str, default='rnn')
+parser.add_argument('--arch', type=str, default='sequential')
 parser.add_argument('--sinkhorn_iters', type=int, default=10)
 parser.add_argument('--sinkhorn_tau', type=float, default=0.05)
 parser.add_argument('--actor_lr', type=float, default=3e-4)
@@ -62,7 +62,7 @@ parser.add_argument('--bidirectional', type=util.str2bool, default=True)
 parser.add_argument('--n_epochs', type=int, default=10)
 parser.add_argument('--random_seed', type=int, default=1234)
 parser.add_argument('--max_grad_norm', type=float, default=1.0, help='Gradient clipping')
-parser.add_argument('--buffer_size', type=int, default=1e6)
+parser.add_argument('--buffer_size', type=int, default=1000000)
 parser.add_argument('--log_step', type=int, default=100, help='Log info every log_step steps')
 parser.add_argument('--disable_critic_aux_loss', type=util.str2bool, default=False)
 parser.add_argument('--actor_workers', type=int, default=4)
@@ -73,7 +73,7 @@ parser.add_argument('--cuda_device', type=int, default=0)
 parser.add_argument('--replay_buffer_gpu', type=util.str2bool, default=True)
 # Misc
 parser.add_argument('--run_name', type=str, default='0')
-parser.add_argument('--base_dir', type=str, default='/media/pemami/DATA/sinkhorn-pg/')
+parser.add_argument('--base_dir', type=str, default='~/project/spg/data/res')
 parser.add_argument('--epoch_start', type=int, default=0, help='Restart at epoch #')
 parser.add_argument('--save_model', type=util.str2bool, default=False, help='Save after epoch')
 parser.add_argument('--save_stats', type=util.str2bool, default=True)
@@ -82,7 +82,7 @@ parser.add_argument('--critic_load_path', type=str, default='')
 parser.add_argument('--disable_tensorboard', type=util.str2bool, default=True)
 parser.add_argument('--disable_progress_bar', type=util.str2bool, default=False)
 parser.add_argument('--_id', type=str, default='123456789', help='FGLab experiment ID')
-parser.add_argument('--num_workers', type=int, default=0)
+parser.add_argument('--num_workers', type=int, default=1)
 parser.add_argument('--make_only', type=int, default=3)
 
 Experience = namedtuple('Experience', ['state', 'action', 'reward'])
@@ -273,7 +273,7 @@ def evaluate_model(args, count):
     #
     i = 0
     for i in range(epoch, epoch + args['n_epochs']):
-        
+        pdb.set_trace()
         eval_step = eval(eval_step)
 
         if args['save_model']:

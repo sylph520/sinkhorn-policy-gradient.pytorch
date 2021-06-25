@@ -1,6 +1,7 @@
 from math import log10, floor
 import torch
-from sklearn.utils.linear_assignment_ import linear_assignment
+# from sklearn.utils.linear_assignment_ import linear_assignment
+from scipy.optimize import linear_sum_assignment as linear_assignment
 
 def str2bool(v):
       return v.lower() in ('true', '1')
@@ -75,6 +76,7 @@ def logsumexp(inputs, dim=None, keepdim=False):
 def parallel_matching(batch):
     perms = []
     (m, n, n) = batch.shape
+    import pdb; pdb.set_trace()
     for i in range(m):
         perm = torch.zeros(n, n)
         matching = linear_assignment(-batch[i])

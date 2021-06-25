@@ -6,7 +6,8 @@ import numpy as np
 import math
 from spg.layers import Sinkhorn
 from spg.util import parallel_matching
-from sklearn.utils.linear_assignment_ import linear_assignment
+# from sklearn.utils.linear_assignment_ import linear_assignment
+from scipy.optimize import linear_sum_assignment as linear_assignment
 from pathos.multiprocessing import ProcessingPool as Pool
 
 class SPGSequentialActor(nn.Module):
